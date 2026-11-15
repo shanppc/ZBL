@@ -42,4 +42,30 @@ async function createAccount(customerId) {
     throw new Error("Could not generate a unique account number");
 }
 
-module.exports = { createAccount };
+async function getAccountByNumber(accountNumber) {
+    const account = await prisma.account.findUnique({
+        where: {accountNumber}
+    });
+    return account;
+}
+
+async function getAllAccounts(customerId) {
+
+    // verify customer exists
+    const customer = await prisma.customer.findUnique({
+        where: { id: customerId }
+    });
+
+    if (!customer) {
+        return null;
+    }
+
+    // Fetch all accounts belonging to customer
+    const accounts = await prisma.account.findMany({
+        where: { customerId }
+    });
+
+    return accounts;
+}
+
+module.exports = { createAccount, getAccountByNumber, getAllAccounts};
