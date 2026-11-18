@@ -1,4 +1,4 @@
-const { createAccount, getAccountByNumber, getAllAccounts } = require("../services/account.service");
+const { createAccount, getAccountByNumber, getAllAccounts , getAccountTransactions } = require("../services/account.service");
 
 async function createBankAccount(req, res) {
     try {
@@ -107,4 +107,45 @@ async function AllAccounts(req, res) {
         });
     }
 }
-module.exports = { createBankAccount, getAccountWithNumber, AllAccounts};
+
+async function getTxns(req, res) {
+    try {
+        const { accountNumber } = req.params;
+
+        // Validate account number //
+        if (
+            typeof accountNumber !== "string" ||
+            !/^\d{10}$/.test(accountNumber)
+        ) {
+            return res.status(400).json({
+                status: "error",
+                message: "Valid 10-digit account number is required"
+            });
+        }
+
+        const transactions = await getAccountTransactions(accountNumber);
+
+        if (transactions === null) {
+            return res.status(404).json({
+                status: "error",
+                message: "Account not found"
+            });
+        }
+
+        return res.status(200).json({
+            status: "success",
+            message: "Account transactions fetched successfully",
+            data: transactions
+        });
+
+    } catch (error) {
+        console.error("Transaction history error:", error);
+
+        return res.status(500).json({
+            status: "error",
+            message: "Internal server error"
+        });
+    }
+}
+
+module.exports = { createBankAccount, getAccountWithNumber, AllAccounts, getTxns};

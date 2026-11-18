@@ -68,4 +68,62 @@ async function getAllAccounts(customerId) {
     return accounts;
 }
 
-module.exports = { createAccount, getAccountByNumber, getAllAccounts};
+
+async function getAccountTransactions(accountNumber) {
+    const account = await prisma.account.findUnique({
+        where: {
+            accountNumber
+        },
+        select: {
+            id: true
+        }
+    });
+
+    if (!account) {
+        return null;
+    }
+
+    const transactions = await prisma.bankTransaction.findMany({
+        where: {
+            OR: [
+                { sourceAccountId: account.id },
+                { destinationAccountId: account.id }
+            ]
+        },
+        select: {
+            reference: true,
+            type: true,
+            amount: true,
+            status: true,
+            createdAt: true,
+
+            sourceAccount: {
+                select: {
+                    accountNumber: true
+                }
+            },
+
+            destinationAccount: {
+                select: {
+                    accountNumber: true
+                }
+            }
+        },
+        orderBy: {
+            createdAt: "desc"
+        }
+    });
+
+    return transactions.map((tx) => ({
+        reference: tx.reference,
+        type: tx.type,
+        amount: tx.amount,
+        status: tx.status,
+        senderAccountNumber: tx.sourceAccount.accountNumber,
+        receiverAccountNumber: tx.destinationAccount.accountNumber,
+        transactionDate: tx.createdAt
+    }));
+}
+
+
+module.exports = { createAccount, getAccountByNumber, getAllAccounts, getAccountTransactions};
