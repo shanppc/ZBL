@@ -4,6 +4,7 @@ const customerRoutes = require("./routes/customer.routes");
 const accountRoutes = require("./routes/account.routes");
 const transferRoutes = require("./routes/transfer.routes");
 const depositRoutes = require("./routes/deposit.routes");
+const offRampPayoutRoutes = require("./routes/offRampPayout.routes");
 
 
 // Middleware
@@ -13,5 +14,6 @@ app.use("/api/customers", customerRoutes);
 app.use("/api/accounts", accountRoutes);
 app.use("/api/transfer", transferRoutes);
 app.use("/api/v1/deposits", depositRoutes);
+app.use("/api/v1/payouts", offRampPayoutRoutes);
 
 module.exports = app;
