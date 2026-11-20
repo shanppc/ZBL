@@ -5,7 +5,8 @@ async function createTransfer(req, res) {
         const {
             senderAccountNumber,
             receiverAccountNumber,
-            amount
+            amount,
+            reference
         } = req.body ?? {};
 
         // Validate sender account number.
@@ -49,10 +50,19 @@ async function createTransfer(req, res) {
             });
         }
 
+        //validate reference number
+        if(!reference){
+            return res.status(400).json({
+                status: "errir",
+                message: "reference is required"
+            });
+        }
+
         const result = await transfer(
             senderAccountNumber,
             receiverAccountNumber,
-            amount
+            amount,
+            reference
         );
 
         return res.status(201).json({

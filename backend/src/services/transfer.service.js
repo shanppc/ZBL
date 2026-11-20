@@ -1,7 +1,5 @@
-
 const prisma = require("../config/prisma");
 const { Prisma } = require("@prisma/client");
-const { randomUUID } = require("crypto");
 
 class TransferError extends Error {
     constructor(message, statusCode) {
@@ -10,7 +8,7 @@ class TransferError extends Error {
     }
 }
 
-async function transfer(senderAccNum, receiverAccNum, amount) {
+async function transfer(senderAccNum, receiverAccNum, amount, reference) {
 
     if (senderAccNum === receiverAccNum) {
         throw new TransferError(
@@ -64,6 +62,36 @@ async function transfer(senderAccNum, receiverAccNum, amount) {
             throw new TransferError("Insufficient balance", 409);
         }
 
+        //Check Idempotency
+        const txReference = await tx.bankTransaction.findUnique({
+            where: { reference } 
+        });
+        
+        if (txReference) {
+            const isSameRequest =
+            txReference.type === "TRANSFER" &&
+            txReference.amount.eq(transferAmount) &&
+            txReference.sourceAccountId === sender.id &&
+            txReference.destinationAccountId === receiver.id;
+
+            if (!isSameRequest) {
+                throw new TransferError("Reference already used for a different request", 409);
+            }
+            else{
+                return {
+                    transaction: txReference,
+                    sender: {
+                    accountNumber: sender.accountNumber,
+                    balance: sender.balance 
+                    },
+                    receiver: {
+                    accountNumber: receiver.accountNumber,
+                    balance: receiver.balance
+                    }
+                };            
+            }
+        }
+
         // Deduct from sender.
         const updatedSender = await tx.account.update({
             where: { id: sender.id },
@@ -87,7 +115,7 @@ async function transfer(senderAccNum, receiverAccNum, amount) {
         // Create the bank transaction record.
         const bankTransaction = await tx.bankTransaction.create({
             data: {
-                reference: `ZBL-${randomUUID()}`,
+                reference: reference,
                 type: "TRANSFER",
                 amount: transferAmount,
                 status: "COMPLETED",
