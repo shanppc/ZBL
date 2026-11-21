@@ -86,6 +86,35 @@ async function deposit(accountNumber, amount, reference) {
             );
         }
 
+        const txReference = await tx.bankTransaction.findUnique({
+            where: {reference}
+        });
+
+        if (txReference) {
+            const isSameRequest =
+            txReference.type === "DEPOSIT" &&
+            txReference.amount.eq(depositAmount) &&
+            txReference.sourceAccountId === settlementAccount.id &&
+            txReference.destinationAccountId === customerAccount.id;
+
+            if (!isSameRequest) {
+                throw new DepositError("Reference already used for a different request", 409);
+            }
+            else{
+                return {
+                    transaction: txReference,
+                    settlementAccount: {
+                    accountNumber: settlementAccount.accountNumber,
+                    balance: settlementAccount.balance 
+                    },
+                    customerAccount: {
+                    accountNumber: customerAccount.accountNumber,
+                    balance: customerAccount.balance
+                    }
+                };            
+            }
+        }
+
         // Credit settlement account
         const updatedSettlement = await tx.account.update({
             where: { id: settlementAccount.id },

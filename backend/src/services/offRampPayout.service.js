@@ -91,6 +91,35 @@ async function payout(accountNumber, amount, reference) {
             );
         }
 
+        const txReference = await tx.bankTransaction.findUnique({
+            where: {reference}
+        });
+
+        if (txReference) {
+            const isSameRequest =
+            txReference.type === "PAYOUT" &&
+            txReference.amount.eq(payoutAmount) &&
+            txReference.sourceAccountId === raahvaPayAccount.id &&
+            txReference.destinationAccountId === customerAccount.id;
+
+            if (!isSameRequest) {
+                throw new PayoutError("Reference already used for a different request", 409);
+            }
+            else{
+                return {
+                    transaction: txReference,
+                    raahvaPayAccount: {
+                    accountNumber: raahvaPayAccount.accountNumber,
+                    balance: raahvaPayAccount.balance 
+                    },
+                    customerAccount: {
+                    accountNumber: customerAccount.accountNumber,
+                    balance: customerAccount.balance
+                    }
+                };            
+            }
+        }
+
         // decrease and debit Raahva Pay account
         const updatedRaahvaPay = await tx.account.update({
             where: { id: raahvaPayAccount.id },
